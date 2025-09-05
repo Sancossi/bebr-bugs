@@ -81,18 +81,17 @@ const typeColors = {
   Other: 'bg-gray-100 text-gray-800'
 }
 
-function BugCard({ bug, onClick, onDragStart, onDragEnd, isDragging }: { 
-  bug: BugData; 
+function BugCard({ bug, onClick, onDragStart, onDragEnd, isDragging }: {
+  bug: BugData;
   onClick: () => void;
   onDragStart: () => void;
   onDragEnd: () => void;
   isDragging: boolean;
 }) {
   return (
-    <div 
-      className={`bg-white p-4 rounded-lg border shadow-sm hover:shadow-md transition-all cursor-pointer ${
-        isDragging ? 'opacity-50 rotate-3 scale-105' : ''
-      }`}
+    <div
+      className={`bg-white p-4 rounded-lg border shadow-sm hover:shadow-md transition-all cursor-pointer ${isDragging ? 'opacity-50 rotate-3 scale-105' : ''
+        }`}
       onClick={onClick}
       draggable
       onDragStart={(e) => {
@@ -109,11 +108,11 @@ function BugCard({ bug, onClick, onDragStart, onDragEnd, isDragging }: {
           </span>
         </div>
       </div>
-      
+
       {bug.description && (
         <p className="text-xs text-gray-600 mb-2 line-clamp-2">{bug.description}</p>
       )}
-      
+
       <div className="flex items-center justify-between mb-2">
         <span className={`px-2 py-1 text-xs rounded-full ${typeColors[bug.type as keyof typeof typeColors]}`}>
           {bug.type}
@@ -122,38 +121,38 @@ function BugCard({ bug, onClick, onDragStart, onDragEnd, isDragging }: {
           {new Date(bug.createdAt).toLocaleDateString('ru-RU')}
         </span>
       </div>
-      
+
       {bug.screenshotUrl && (
         <div className="mb-2">
-          <img 
-            src={bug.screenshotUrl} 
-            alt="Screenshot" 
+          <img
+            src={bug.screenshotUrl}
+            alt="Screenshot"
             className="w-full h-20 object-cover rounded"
           />
         </div>
       )}
-      
+
       <div className="flex items-center justify-between">
         {bug.reportedBy && (
           <div className="flex items-center space-x-2">
             {bug.reportedBy.image && (
-              <img 
-                src={bug.reportedBy.image} 
-                alt={bug.reportedBy.name || 'User'} 
+              <img
+                src={bug.reportedBy.image}
+                alt={bug.reportedBy.name || 'User'}
                 className="w-6 h-6 rounded-full"
               />
             )}
             <span className="text-xs text-gray-600">{bug.reportedBy.name}</span>
           </div>
         )}
-        
+
         {bug.assignedTo && (
           <div className="flex items-center space-x-2">
             <span className="text-xs text-gray-500">→</span>
             {bug.assignedTo.image && (
-              <img 
-                src={bug.assignedTo.image} 
-                alt={bug.assignedTo.name || 'User'} 
+              <img
+                src={bug.assignedTo.image}
+                alt={bug.assignedTo.name || 'User'}
                 className="w-6 h-6 rounded-full"
               />
             )}
@@ -165,8 +164,8 @@ function BugCard({ bug, onClick, onDragStart, onDragEnd, isDragging }: {
   )
 }
 
-function KanbanColumn({ status, bugs, onBugClick, onDrop, draggedBugId, onDragStart, onDragEnd }: { 
-  status: string; 
+function KanbanColumn({ status, bugs, onBugClick, onDrop, draggedBugId, onDragStart, onDragEnd }: {
+  status: string;
   bugs: BugData[];
   onBugClick: (bugId: string) => void;
   onDrop: (bugId: string, newStatus: string) => void;
@@ -190,10 +189,9 @@ function KanbanColumn({ status, bugs, onBugClick, onDrop, draggedBugId, onDragSt
   }
 
   return (
-    <div 
-      className={`${config.color} border rounded-lg p-4 min-h-[600px] w-80 transition-colors ${
-        draggedBugId ? 'border-dashed border-2' : ''
-      }`}
+    <div
+      className={`${config.color} border rounded-lg p-4 min-h-[600px] w-80 transition-colors ${draggedBugId ? 'border-dashed border-2' : ''
+        }`}
       onDragOver={handleDragOver}
       onDrop={handleDrop}
     >
@@ -208,12 +206,12 @@ function KanbanColumn({ status, bugs, onBugClick, onDrop, draggedBugId, onDragSt
           </span>
         </div>
       </div>
-      
+
       <div className="space-y-3">
         {bugs.map((bug) => (
-          <BugCard 
-            key={bug.id} 
-            bug={bug} 
+          <BugCard
+            key={bug.id}
+            bug={bug}
             onClick={() => onBugClick(bug.id)}
             onDragStart={() => onDragStart(bug.id)}
             onDragEnd={onDragEnd}
@@ -246,22 +244,23 @@ export default function KanbanPage() {
 
   const fetchKanbanData = async () => {
     try {
-      const response = await fetch('/api/bugs/kanban')
+      const response = await fetch("/api/bugs/kanban")
       if (response.ok) {
         const result = await response.json()
 
         if (result.success && result.data) {
           setBugs(result.data)
         } else {
-          console.error(result.error || 'Ошибка загрузки')
+          console.error("Ошибка загрузки данных Kanban:", result.error)
         }
       }
     } catch (error) {
-      console.error('Error fetching kanban data:', error)
+      console.error("Error fetching kanban data:", error)
     } finally {
       setLoading(false)
     }
   }
+
 
   const handleBugClick = (bugId: string) => {
     router.push(`/bugs/${bugId}`)
@@ -283,24 +282,24 @@ export default function KanbanPage() {
         // Обновляем локальное состояние
         setBugs(prevBugs => {
           const newBugs = { ...prevBugs }
-          
+
           // Находим баг в старой колонке и удаляем его
           Object.keys(newBugs).forEach(status => {
             newBugs[status] = newBugs[status].filter(bug => bug.id !== bugId)
           })
-          
+
           // Добавляем баг в новую колонку
           const bugToMove = Object.values(prevBugs)
             .flat()
             .find(bug => bug.id === bugId)
-          
+
           if (bugToMove) {
             if (!newBugs[newStatus]) {
               newBugs[newStatus] = []
             }
             newBugs[newStatus].push({ ...bugToMove, status: newStatus })
           }
-          
+
           return newBugs
         })
       }
@@ -338,10 +337,10 @@ export default function KanbanPage() {
 
       <div className="flex space-x-6 overflow-x-auto pb-6">
         {Object.keys(statusConfig).map((status) => (
-          <KanbanColumn 
-            key={status} 
-            status={status} 
-            bugs={bugs[status] || []} 
+          <KanbanColumn
+            key={status}
+            status={status}
+            bugs={bugs[status] || []}
             onBugClick={handleBugClick}
             onDrop={handleDrop}
             draggedBugId={draggedBugId}
