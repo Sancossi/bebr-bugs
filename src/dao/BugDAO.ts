@@ -23,9 +23,17 @@ export class BugDAO {
     customData?: string
     screenshotUrl?: string
     attachmentUrls?: string
+    createdAt?: Date
   }): Promise<Bug> {
+    const { createdAt, ...restData } = data
+    
+    const createData: any = restData
+    if (createdAt) {
+      createData.createdAt = createdAt
+    }
+    
     return await prisma.bug.create({
-      data,
+      data: createData,
     })
   }
 
@@ -59,16 +67,18 @@ export class BugDAO {
     assignedToId?: string
     reportedById?: string
     search?: string
+    level?: string
     skip?: number
     take?: number
   } = {}): Promise<BugWithRelations[]> {
-    const { status, type, assignedToId, reportedById, search, skip = 0, take = 150 } = params
+    const { status, type, assignedToId, reportedById, search, level, skip = 0, take = 150 } = params
 
     const where: Prisma.BugWhereInput = {}
     if (status) where.status = status
     if (type) where.type = type
     if (assignedToId) where.assignedToId = assignedToId
     if (reportedById) where.reportedById = reportedById
+    if (level) where.level = { contains: level }
     if (search) {
       where.OR = [
         { title: { contains: search } },
@@ -130,14 +140,16 @@ export class BugDAO {
     assignedToId?: string
     reportedById?: string
     search?: string
+    level?: string
   } = {}): Promise<number> {
-    const { status, type, assignedToId, reportedById, search } = params
+    const { status, type, assignedToId, reportedById, search, level } = params
 
     const where: Prisma.BugWhereInput = {}
     if (status) where.status = status
     if (type) where.type = type
     if (assignedToId) where.assignedToId = assignedToId
     if (reportedById) where.reportedById = reportedById
+    if (level) where.level = { contains: level }
     if (search) {
       where.OR = [
         { title: { contains: search } },

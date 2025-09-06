@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import Image from 'next/image'
 import { Button } from '../../../components/ui/button'
+import { ClickableImage } from '../../../components/ui/ClickableImage'
 import { BugWithRelations, CommentWithAuthor } from '../../../src/types'
 
 export default function BugDetailPage() {
@@ -231,13 +232,10 @@ export default function BugDetailPage() {
             <div className="bg-white rounded-lg shadow p-6">
               <h2 className="text-xl font-semibold mb-3">Скриншот</h2>
               <div className="relative">
-                <Image
+                <ClickableImage
                   src={bug.screenshotUrl}
                   alt="Скриншот бага"
-                  width={800}
-                  height={450}
-                  className="rounded-lg border"
-                  style={{ width: '100%', height: 'auto' }}
+                  className="rounded-lg border w-full h-auto"
                 />
               </div>
             </div>
@@ -362,12 +360,10 @@ export default function BugDetailPage() {
                     <p className="text-gray-700 whitespace-pre-wrap">{comment.content}</p>
                     {comment.attachmentUrl && (
                       <div className="mt-2">
-                        <Image
+                        <ClickableImage
                           src={comment.attachmentUrl}
                           alt="Вложение"
-                          width={200}
-                          height={200}
-                          className="rounded border"
+                          className="rounded border max-w-md"
                         />
                       </div>
                     )}

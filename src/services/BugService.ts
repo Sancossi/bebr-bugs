@@ -20,6 +20,7 @@ export class BugService {
     const bug = await this.bugDAO.create({
       ...data,
       reportedById,
+      createdAt: new Date(), // Устанавливаем текущую дату для обычных багов
     })
 
     return await this.getBugById(bug.id) as BugWithRelations
@@ -61,9 +62,12 @@ export class BugService {
     // Определяем статус на основе реакций Discord
     const status = DiscordReactionService.getStatusFromReactions(discordData.reactions || [])
     
+    // Парсим дату создания сообщения
+    const createdAt = new Date(discordData.timestamp)
+
     // Извлекаем URL скриншота
     const screenshotUrl = embed.image?.url
-
+    
     const bug = await this.bugDAO.create({
       title,
       description,
@@ -87,6 +91,7 @@ export class BugService {
       currentVram,
       customData,
       screenshotUrl,
+      createdAt, // Используем дату из Discord сообщения
     })
 
     return await this.getBugById(bug.id) as BugWithRelations
@@ -106,6 +111,7 @@ export class BugService {
     assignedToId?: string
     reportedById?: string
     search?: string
+    level?: string
     page?: number
     limit?: number
   } = {}): Promise<{ bugs: BugWithRelations[], total: number, totalPages: number }> {

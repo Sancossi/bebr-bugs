@@ -6,6 +6,7 @@ import { redirect, useRouter } from 'next/navigation'
 import { Bug, Filter, Search, Plus, Eye, Edit, Trash2 } from 'lucide-react'
 import { Button } from '../../components/ui/button'
 import { SyncButton } from '../../components/discord/SyncButton'
+import { ClickableImage } from '../../components/ui/ClickableImage'
 
 interface BugData {
   id: string
@@ -63,7 +64,7 @@ function BugRow({ bug, onClick }: { bug: BugData; onClick: () => void }) {
       <td className="p-4">
         <div className="flex items-start space-x-3">
           {bug.screenshotUrl && (
-            <img 
+            <ClickableImage 
               src={bug.screenshotUrl} 
               alt="Screenshot" 
               className="w-12 h-12 object-cover rounded"
@@ -106,7 +107,7 @@ function BugRow({ bug, onClick }: { bug: BugData; onClick: () => void }) {
         {bug.reportedBy && (
           <div className="flex items-center space-x-2">
             {bug.reportedBy.image && (
-              <img 
+              <ClickableImage 
                 src={bug.reportedBy.image} 
                 alt={bug.reportedBy.name || 'User'} 
                 className="w-6 h-6 rounded-full"
@@ -121,7 +122,7 @@ function BugRow({ bug, onClick }: { bug: BugData; onClick: () => void }) {
         {bug.assignedTo && (
           <div className="flex items-center space-x-2">
             {bug.assignedTo.image && (
-              <img 
+              <ClickableImage 
                 src={bug.assignedTo.image} 
                 alt={bug.assignedTo.name || 'User'} 
                 className="w-6 h-6 rounded-full"
@@ -161,6 +162,7 @@ export default function BugsPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [filterStatus, setFilterStatus] = useState('')
   const [filterType, setFilterType] = useState('')
+  const [filterLevel, setFilterLevel] = useState('')
   
   // Пагинация
   const [currentPage, setCurrentPage] = useState(1)
@@ -178,7 +180,7 @@ export default function BugsPage() {
     if (status === 'authenticated') {
       fetchBugs(1) // Сброс на первую страницу при изменении фильтров
     }
-  }, [status, filterStatus, filterType, searchTerm])
+  }, [status, filterStatus, filterType, filterLevel, searchTerm])
 
   const fetchBugs = async (page = 1) => {
     try {
@@ -189,6 +191,7 @@ export default function BugsPage() {
       
       if (filterStatus) params.append('status', filterStatus)
       if (filterType) params.append('type', filterType)
+      if (filterLevel) params.append('level', filterLevel)
       if (searchTerm) params.append('search', searchTerm)
       
       const response = await fetch(`/api/bugs?${params.toString()}`)
@@ -270,6 +273,8 @@ export default function BugsPage() {
             <option value="TESTING">Тестирование</option>
             <option value="READY_TO_RELEASE">Готов к релизу</option>
             <option value="CLOSED">Закрыты</option>
+            <option value="REQUIRES_DISCUSSION">Требует обсуждения</option>
+            <option value="OUTDATED">Неактуальные</option>
           </select>
           
           <select
@@ -278,15 +283,20 @@ export default function BugsPage() {
             className="px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
           >
             <option value="">Все типы</option>
-            <option value="Gameplay">Gameplay</option>
-            <option value="GameIdeas">Game Ideas</option>
-            <option value="UI">UI</option>
-            <option value="Performance">Performance</option>
-            <option value="Audio">Audio</option>
-            <option value="Graphics">Graphics</option>
-            <option value="Network">Network</option>
+            <option value="Bug">Bug</option>
+            <option value="Feature">Feature</option>
+            <option value="Improvement">Improvement</option>
+            <option value="Task">Task</option>
             <option value="Other">Other</option>
           </select>
+          
+          <input
+            type="text"
+            placeholder="Уровень..."
+            value={filterLevel}
+            onChange={(e) => setFilterLevel(e.target.value)}
+            className="px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+          />
         </div>
       </div>
 

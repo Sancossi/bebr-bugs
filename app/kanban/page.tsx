@@ -5,6 +5,7 @@ import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { redirect } from 'next/navigation'
 import { Bug, TestTube, Play, CheckCircle, XCircle, Clock, MessageCircle, Archive, ChevronDown, ChevronUp } from 'lucide-react'
+import { ClickableImage } from '../../components/ui/ClickableImage'
 
 type BugData = {
   id: string
@@ -14,6 +15,7 @@ type BugData = {
   status: string
   priority: string
   createdAt: string
+  updatedAt: string
   screenshotUrl: string | null
   reportedBy: {
     id: string
@@ -138,7 +140,7 @@ function BugCard({ bug, onClick, onDragStart, onDragEnd, isDragging }: {
 
       {bug.screenshotUrl && (
         <div className="mb-2">
-          <img
+          <ClickableImage
             src={bug.screenshotUrl}
             alt="Screenshot"
             className="w-full h-20 object-cover rounded"
@@ -150,7 +152,7 @@ function BugCard({ bug, onClick, onDragStart, onDragEnd, isDragging }: {
         {bug.reportedBy && (
           <div className="flex items-center space-x-2">
             {bug.reportedBy.image && (
-              <img
+              <ClickableImage
                 src={bug.reportedBy.image}
                 alt={bug.reportedBy.name || 'User'}
                 className="w-6 h-6 rounded-full"
@@ -164,7 +166,7 @@ function BugCard({ bug, onClick, onDragStart, onDragEnd, isDragging }: {
           <div className="flex items-center space-x-2">
             <span className="text-xs text-gray-500">→</span>
             {bug.assignedTo.image && (
-              <img
+              <ClickableImage
                 src={bug.assignedTo.image}
                 alt={bug.assignedTo.name || 'User'}
                 className="w-6 h-6 rounded-full"
@@ -277,6 +279,10 @@ export default function KanbanPage() {
   const [filterType, setFilterType] = useState('')
   const [filterPriority, setFilterPriority] = useState('')
   
+  // Сортировка
+  const [sortBy, setSortBy] = useState('createdAt')
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
+  
   // Состояние сворачивания колонок
   const [collapsedColumns, setCollapsedColumns] = useState<Set<string>>(new Set())
 
@@ -387,6 +393,45 @@ export default function KanbanPage() {
     })
   }
 
+  // Сортировка багов
+  const sortBugs = (bugsArray: BugData[]) => {
+    return [...bugsArray].sort((a, b) => {
+      let aValue: any, bValue: any
+
+      switch (sortBy) {
+        case 'createdAt':
+          aValue = new Date(a.createdAt)
+          bValue = new Date(b.createdAt)
+          break
+        case 'updatedAt':
+          aValue = new Date(a.updatedAt)
+          bValue = new Date(b.updatedAt)
+          break
+        case 'title':
+          aValue = a.title.toLowerCase()
+          bValue = b.title.toLowerCase()
+          break
+        case 'priority':
+          const priorityOrder = { 'CRITICAL': 4, 'HIGH': 3, 'MEDIUM': 2, 'LOW': 1 }
+          aValue = priorityOrder[a.priority as keyof typeof priorityOrder] || 0
+          bValue = priorityOrder[b.priority as keyof typeof priorityOrder] || 0
+          break
+        default:
+          return 0
+      }
+
+      if (aValue < bValue) return sortOrder === 'asc' ? -1 : 1
+      if (aValue > bValue) return sortOrder === 'asc' ? 1 : -1
+      return 0
+    })
+  }
+
+  // Применение фильтрации и сортировки
+  const processedBugs = (bugsArray: BugData[]) => {
+    const filtered = filterBugs(bugsArray)
+    return sortBugs(filtered)
+  }
+
   // Управление сворачиванием колонок
   const toggleColumn = (status: string) => {
     setCollapsedColumns(prev => {
@@ -448,6 +493,32 @@ export default function KanbanPage() {
           </select>
         </div>
 
+        <div className="flex flex-col">
+          <label className="text-sm font-medium text-gray-700 mb-1">Сортировка</label>
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value)}
+            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="createdAt">По дате создания</option>
+            <option value="updatedAt">По дате обновления</option>
+            <option value="title">По названию</option>
+            <option value="priority">По приоритету</option>
+          </select>
+        </div>
+
+        <div className="flex flex-col">
+          <label className="text-sm font-medium text-gray-700 mb-1">Порядок</label>
+          <select
+            value={sortOrder}
+            onChange={(e) => setSortOrder(e.target.value as 'asc' | 'desc')}
+            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="desc">Убывание</option>
+            <option value="asc">Возрастание</option>
+          </select>
+        </div>
+
         {(filterType || filterPriority) && (
           <div className="flex items-end">
             <button
@@ -468,7 +539,7 @@ export default function KanbanPage() {
           <KanbanColumn
             key={status}
             status={status}
-            bugs={filterBugs(bugs[status] || [])}
+            bugs={processedBugs(bugs[status] || [])}
             onBugClick={handleBugClick}
             onDrop={handleDrop}
             draggedBugId={draggedBugId}

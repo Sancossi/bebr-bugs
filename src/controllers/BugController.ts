@@ -77,6 +77,7 @@ export class BugController {
         assignedToId: searchParams.get('assignedToId') || undefined,
         reportedById: searchParams.get('reportedById') || undefined,
         search: searchParams.get('search') || undefined,
+        level: searchParams.get('level') || undefined,
         page: parseInt(searchParams.get('page') || '1'),
         limit: parseInt(searchParams.get('limit') || '20'),
       }
