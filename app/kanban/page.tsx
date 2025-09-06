@@ -1,65 +1,67 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useSession } from 'next-auth/react'
-import { redirect, useRouter } from 'next/navigation'
-import { BugStatus, BugType } from '../../src/types'
-import { Bug, BarChart3, Clock, CheckCircle, AlertTriangle, Zap } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { redirect } from 'next/navigation'
+import { Clock, Play, TestTube, CheckCircle, XCircle } from 'lucide-react'
 
-interface BugData {
+type BugData = {
   id: string
   title: string
-  description?: string
+  description: string | null
   type: string
   status: string
   priority: string
-  screenshotUrl?: string
-  reportedBy?: {
-    name?: string
-    image?: string
+  createdAt: string
+  screenshotUrl: string | null
+  reportedBy: {
+    id: string
+    name: string | null
+    image: string | null
   }
   assignedTo?: {
-    name?: string
-    image?: string
-  }
-  createdAt: string
+    id: string
+    name: string | null
+    image: string | null
+  } | null
 }
 
 const statusConfig = {
   NEW: {
     title: 'Новые',
-    color: 'bg-blue-50 border-blue-200',
-    headerColor: 'bg-blue-100',
-    icon: AlertTriangle,
-    iconColor: 'text-blue-600'
+    color: 'bg-red-50',
+    headerColor: 'bg-red-100',
+    iconColor: 'text-red-600',
+    icon: Clock
   },
   IN_PROGRESS: {
     title: 'В работе',
-    color: 'bg-yellow-50 border-yellow-200',
-    headerColor: 'bg-yellow-100',
-    icon: Clock,
-    iconColor: 'text-yellow-600'
+    color: 'bg-blue-50',
+    headerColor: 'bg-blue-100',
+    iconColor: 'text-blue-600',
+    icon: Play
   },
   TESTING: {
-    title: 'Тестирование',
-    color: 'bg-purple-50 border-purple-200',
-    headerColor: 'bg-purple-100',
-    icon: BarChart3,
-    iconColor: 'text-purple-600'
+    title: 'На тестировании',
+    color: 'bg-yellow-50',
+    headerColor: 'bg-yellow-100',
+    iconColor: 'text-yellow-600',
+    icon: TestTube
   },
   READY_TO_RELEASE: {
     title: 'Готов к релизу',
-    color: 'bg-green-50 border-green-200',
+    color: 'bg-green-50',
     headerColor: 'bg-green-100',
-    icon: Zap,
-    iconColor: 'text-green-600'
+    iconColor: 'text-green-600',
+    icon: CheckCircle
   },
   CLOSED: {
-    title: 'Закрыты',
-    color: 'bg-gray-50 border-gray-200',
+    title: 'Закрыт',
+    color: 'bg-gray-50',
     headerColor: 'bg-gray-100',
-    icon: CheckCircle,
-    iconColor: 'text-gray-600'
+    iconColor: 'text-gray-600',
+    icon: XCircle
   }
 }
 
@@ -71,12 +73,10 @@ const priorityColors = {
 }
 
 const typeColors = {
-  Gameplay: 'bg-blue-100 text-blue-800',
-  GameIdeas: 'bg-purple-100 text-purple-800',
-  UI: 'bg-indigo-100 text-indigo-800',
-  Performance: 'bg-red-100 text-red-800',
-  Audio: 'bg-green-100 text-green-800',
-  Graphics: 'bg-yellow-100 text-yellow-800',
+  Bug: 'bg-red-100 text-red-800',
+  Feature: 'bg-blue-100 text-blue-800',
+  Improvement: 'bg-purple-100 text-purple-800',
+  Task: 'bg-green-100 text-green-800',
   Network: 'bg-gray-100 text-gray-800',
   Other: 'bg-gray-100 text-gray-800'
 }
@@ -175,24 +175,34 @@ function KanbanColumn({ status, bugs, onBugClick, onDrop, draggedBugId, onDragSt
 }) {
   const config = statusConfig[status as keyof typeof statusConfig]
   const Icon = config.icon
+  const [isDragOver, setIsDragOver] = useState(false)
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault()
+    setIsDragOver(true)
+  }
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault()
+    setIsDragOver(false)
   }
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault()
+    setIsDragOver(false)
     const bugId = e.dataTransfer.getData('text/plain')
-    if (bugId && bugId !== draggedBugId) {
+    if (bugId) {
       onDrop(bugId, status)
     }
   }
 
   return (
     <div
-      className={`${config.color} border rounded-lg p-4 min-h-[600px] w-80 transition-colors ${draggedBugId ? 'border-dashed border-2' : ''
-        }`}
+      className={`${config.color} border rounded-lg p-4 min-h-[600px] w-80 transition-all ${
+        isDragOver ? 'border-dashed border-2 border-blue-400 bg-blue-50' : ''
+      } ${draggedBugId ? 'border-dashed border-2' : ''}`}
       onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
       onDrop={handleDrop}
     >
       <div className={`${config.headerColor} -m-4 mb-4 p-4 rounded-t-lg`}>
@@ -261,13 +271,21 @@ export default function KanbanPage() {
     }
   }
 
-
   const handleBugClick = (bugId: string) => {
     router.push(`/bugs/${bugId}`)
   }
 
   const handleDrop = async (bugId: string, newStatus: string) => {
     try {
+      // Находим текущий статус бага
+      const currentBug = Object.values(bugs)
+        .flat()
+        .find(bug => bug.id === bugId)
+      
+      if (!currentBug || currentBug.status === newStatus) {
+        return // Не нужно обновлять, если статус тот же
+      }
+
       const response = await fetch(`/api/bugs/${bugId}`, {
         method: 'PUT',
         headers: {
@@ -302,6 +320,10 @@ export default function KanbanPage() {
 
           return newBugs
         })
+        
+        console.log(`✅ Баг ${bugId} перемещен в статус ${newStatus}`)
+      } else {
+        console.error('Ошибка обновления статуса бага')
       }
     } catch (error) {
       console.error('Error updating bug status:', error)
@@ -325,17 +347,13 @@ export default function KanbanPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Kanban доска</h1>
-          <p className="text-muted-foreground">
-            Управление багами по статусам
-          </p>
-        </div>
+    <div className="container mx-auto px-4 py-8">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">Kanban доска</h1>
+        <p className="text-gray-600">Управляйте багами с помощью перетаскивания между колонками</p>
       </div>
 
-      <div className="flex space-x-6 overflow-x-auto pb-6">
+      <div className="flex gap-6 overflow-x-auto pb-4">
         {Object.keys(statusConfig).map((status) => (
           <KanbanColumn
             key={status}

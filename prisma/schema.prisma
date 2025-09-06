@@ -3,8 +3,8 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = "file:./dev.db"
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 model Account {
@@ -61,15 +61,37 @@ model VerificationToken {
   @@unique([identifier, token])
 }
 
-// SQLite не поддерживает enum'ы, используем String с ограничениями в коде
+// PostgreSQL поддерживает enum'ы
+enum BugType {
+  Bug
+  Feature
+  Improvement
+  Task
+  Other
+}
+
+enum BugStatus {
+  NEW
+  IN_PROGRESS
+  TESTING
+  READY_TO_RELEASE
+  CLOSED
+}
+
+enum BugPriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
 
 model Bug {
   id                String      @id @default(cuid())
   title             String
   description       String?
-  type              String      @default("Other")
-  status            String      @default("NEW")
-  priority          String      @default("MEDIUM")
+  type              BugType     @default(Other)
+  status            BugStatus   @default(NEW)
+  priority          BugPriority @default(MEDIUM)
   
   // Discord data
   discordMessageId  String?     @unique
@@ -89,11 +111,11 @@ model Bug {
   currentRam        String?
   vram              String?
   currentVram       String?
-  customData        String?     // JSON string
+  customData        Json?       // JSON data
   
   // Screenshots and attachments
   screenshotUrl     String?
-  attachmentUrls    String?     // JSON array of URLs
+  attachmentUrls    Json?       // JSON array of URLs
   
   // Relations
   reportedById      String?

@@ -150,7 +150,7 @@ export class BugService {
 
     // Загружаем баги для каждого статуса
     for (const status of Object.keys(kanbanData) as BugStatus[]) {
-      kanbanData[status] = await this.bugDAO.findAll({ status, take: 50 })
+      kanbanData[status] = await this.bugDAO.findAll({ status, take: 150 })
     }
 
     return kanbanData

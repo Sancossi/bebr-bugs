@@ -3,6 +3,13 @@ import DiscordProvider from 'next-auth/providers/discord'
 import { PrismaAdapter } from '@next-auth/prisma-adapter'
 import { prisma } from './database'
 
+// Отладочный код для проверки переменных окружения
+console.log('=== Auth Debug ===')
+console.log('DISCORD_CLIENT_ID:', process.env.DISCORD_CLIENT_ID)
+console.log('DISCORD_CLIENT_SECRET exists:', !!process.env.DISCORD_CLIENT_SECRET)
+console.log('NEXTAUTH_URL:', process.env.NEXTAUTH_URL)
+console.log('=================')
+
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
   providers: [

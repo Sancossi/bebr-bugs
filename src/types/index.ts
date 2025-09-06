@@ -1,14 +1,11 @@
 import { Bug, Comment, User } from '@prisma/client'
 
-// Enum'ы для SQLite
+// Enum'ы для PostgreSQL (должны соответствовать schema.prisma)
 export enum BugType {
-  Gameplay = 'Gameplay',
-  GameIdeas = 'GameIdeas',
-  UI = 'UI',
-  Performance = 'Performance',
-  Audio = 'Audio',
-  Graphics = 'Graphics',
-  Network = 'Network',
+  Bug = 'Bug',
+  Feature = 'Feature', 
+  Improvement = 'Improvement',
+  Task = 'Task',
   Other = 'Other',
 }
 
@@ -28,9 +25,9 @@ export enum BugPriority {
 }
 
 export type BugWithRelations = Bug & {
-  reportedBy?: User | null
+  reportedBy: User
   assignedTo?: User | null
-  comments?: (Comment & { author: User })[]
+  comments: CommentWithAuthor[]
 }
 
 export type CommentWithAuthor = Comment & {
@@ -74,6 +71,7 @@ export interface DiscordBugReport {
     id: string
     name: string
   }
+  severity?: string
 }
 
 export interface CreateBugRequest {
@@ -87,6 +85,7 @@ export interface CreateBugRequest {
 export interface UpdateBugRequest {
   title?: string
   description?: string
+  type?: BugType
   status?: BugStatus
   priority?: BugPriority
   assignedToId?: string

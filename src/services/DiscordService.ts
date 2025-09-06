@@ -9,46 +9,64 @@ export class DiscordService {
       intents: [
         GatewayIntentBits.Guilds,
         GatewayIntentBits.GuildMessages,
+        // ВАЖНО: MessageContent - привилегированный intent!
+        // Его нужно включить в Discord Developer Portal -> Bot -> Privileged Gateway Intents
         GatewayIntentBits.MessageContent,
       ],
     })
 
     this.client.once("ready", () => {
-      console.log("Discord bot �����!")
+      console.log("Discord bot готов!")
       this.isReady = true
     })
 
     this.client.on("error", (error) => {
-      console.error("Discord bot ������:", error)
+      console.error("Discord bot ошибка:", error)
     })
   }
 
   async login() {
     if (!process.env.DISCORD_BOT_TOKEN) {
-      throw new Error("DISCORD_BOT_TOKEN �� ������ � ���������� ���������")
+      throw new Error("DISCORD_BOT_TOKEN не задан в переменных окружения")
     }
     
-    await this.client.login(process.env.DISCORD_BOT_TOKEN)
-    
-    // ���� ���� ��� �����������
-    while (!this.isReady) {
-      await new Promise(resolve => setTimeout(resolve, 100))
+    try {
+      await this.client.login(process.env.DISCORD_BOT_TOKEN)
+      
+      // Ждем пока бот подключится
+      while (!this.isReady) {
+        await new Promise(resolve => setTimeout(resolve, 100))
+      }
+    } catch (error) {
+      if (error.message.includes('disallowed intents')) {
+        throw new Error(
+          "Ошибка: Привилегированные intents не включены!\n" +
+          "Перейдите в Discord Developer Portal -> Bot -> Privileged Gateway Intents\n" +
+          "и включите 'MESSAGE CONTENT INTENT'"
+        )
+      }
+      throw error
     }
   }
 
   async getMessagesFromChannel(channelId: string, limit = 50) {
     if (!this.isReady) {
-      throw new Error("Discord bot �� �����")
+      throw new Error("Discord bot не готов")
     }
 
-    const channel = await this.client.channels.fetch(channelId)
-    
-    if (!channel || !channel.isTextBased()) {
-      throw new Error(`����� ${channelId} �� ������ ��� �� �������� ���������`)
-    }
+    try {
+      const channel = await this.client.channels.fetch(channelId)
+      
+      if (!channel || !channel.isTextBased()) {
+        throw new Error(`Канал ${channelId} не найден или не является текстовым`)
+      }
 
-    const messages = await channel.messages.fetch({ limit })
-    return Array.from(messages.values())
+      const messages = await channel.messages.fetch({ limit })
+      return Array.from(messages.values())
+    } catch (error) {
+      console.error(`Ошибка получения сообщений из канала ${channelId}:`, error)
+      throw error
+    }
   }
 
   async getMessagesFromChannels(channelIds: string[], limit = 50) {
@@ -59,7 +77,8 @@ export class DiscordService {
         const messages = await this.getMessagesFromChannel(channelId, limit)
         allMessages.push(...messages)
       } catch (error) {
-        console.error(`������ ��������� ��������� �� ������ ${channelId}:`, error)
+        console.error(`Ошибка получения сообщений из канала ${channelId}:`, error)
+        // Не прерываем выполнение, продолжаем с другими каналами
       }
     }
     

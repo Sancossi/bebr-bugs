@@ -2,7 +2,6 @@
 import { getServerSession } from "next-auth"
 import { authOptions } from "../../../../src/lib/auth"
 import { BugService } from "../../../../src/services/BugService"
-import { DiscordService } from "../../../../src/services/DiscordService"
 
 const bugService = new BugService()
 
@@ -14,8 +13,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    console.log(" Начинаем синхронизацию багов из Discord...")
+    console.log("🔄 Начинаем синхронизацию багов из Discord...")
     
+    // Динамический импорт DiscordService для избежания проблем с webpack
+    const { DiscordService } = await import("../../../../src/services/DiscordService")
     const discordService = new DiscordService()
     
     try {
@@ -33,7 +34,7 @@ export async function POST(req: NextRequest) {
         gameIdeasChannelId
       ], 100) 
       
-      console.log(` Получено ${messages.length} сообщений из Discord`)
+      console.log(`📥 Получено ${messages.length} сообщений из Discord`)
       
       const results = []
       let newBugs = 0
@@ -90,7 +91,7 @@ export async function POST(req: NextRequest) {
               status: "created",
               bugId: bug.id
             })
-            console.log(" Создан баг:", bug.title)
+            console.log("✅ Создан баг:", bug.title)
           } else {
             errors++
             results.push({
@@ -102,7 +103,7 @@ export async function POST(req: NextRequest) {
           }
         } catch (error) {
           errors++
-          console.error(" Ошибка при обработке сообщения:", error)
+          console.error("❌ Ошибка при обработке сообщения:", error)
           results.push({
             messageId: message.id,
             title: message.embeds[0]?.title || "Unknown",
@@ -121,7 +122,7 @@ export async function POST(req: NextRequest) {
         timestamp: new Date().toISOString()
       }
       
-      console.log(" Синхронизация завершена:", summary)
+      console.log("🎉 Синхронизация завершена:", summary)
       
       return NextResponse.json({
         success: true,
@@ -134,7 +135,7 @@ export async function POST(req: NextRequest) {
     }
     
   } catch (error) {
-    console.error(" Ошибка синхронизации:", error)
+    console.error("💥 Ошибка синхронизации:", error)
     return NextResponse.json(
       { 
         success: false, 

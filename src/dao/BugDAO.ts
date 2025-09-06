@@ -61,7 +61,7 @@ export class BugDAO {
     skip?: number
     take?: number
   } = {}): Promise<BugWithRelations[]> {
-    const { status, type, assignedToId, reportedById, skip = 0, take = 50 } = params
+    const { status, type, assignedToId, reportedById, skip = 0, take = 150 } = params
 
     const where: Prisma.BugWhereInput = {}
     if (status) where.status = status
