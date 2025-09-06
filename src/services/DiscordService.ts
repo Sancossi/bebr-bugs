@@ -62,7 +62,33 @@ export class DiscordService {
       }
 
       const messages = await channel.messages.fetch({ limit })
-      return Array.from(messages.values())
+      const messagesArray = Array.from(messages.values())
+      
+      // Получаем реакции для каждого сообщения
+      for (const message of messagesArray) {
+        if (message.reactions.cache.size > 0) {
+          // Получаем детальную информацию о реакциях
+          const reactions = []
+          for (const reaction of Array.from(message.reactions.cache.values())) {
+            const users = await reaction.users.fetch()
+            reactions.push({
+              emoji: {
+                name: reaction.emoji.name,
+                id: reaction.emoji.id
+              },
+              count: reaction.count,
+              users: Array.from(users.values()).map((user: any) => ({
+                id: user.id,
+                username: user.username
+              }))
+            })
+          }
+          // Добавляем реакции к объекту сообщения
+          ;(message as any).reactionsData = reactions
+        }
+      }
+      
+      return messagesArray
     } catch (error) {
       console.error(`Ошибка получения сообщений из канала ${channelId}:`, error)
       throw error

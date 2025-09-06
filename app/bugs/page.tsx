@@ -34,7 +34,9 @@ const statusColors = {
   IN_PROGRESS: 'bg-yellow-100 text-yellow-800',
   TESTING: 'bg-purple-100 text-purple-800',
   READY_TO_RELEASE: 'bg-green-100 text-green-800',
-  CLOSED: 'bg-gray-100 text-gray-800'
+  CLOSED: 'bg-gray-100 text-gray-800',
+  REQUIRES_DISCUSSION: 'bg-orange-100 text-orange-800',
+  OUTDATED: 'bg-slate-100 text-slate-800'
 }
 
 const priorityColors = {

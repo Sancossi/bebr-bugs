@@ -148,6 +148,8 @@ export class BugDAO {
       TESTING: 0,
       READY_TO_RELEASE: 0,
       CLOSED: 0,
+      REQUIRES_DISCUSSION: 0,
+      OUTDATED: 0,
     }
 
     counts.forEach(({ status, _count }) => {

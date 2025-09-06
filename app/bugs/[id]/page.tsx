@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import Image from 'next/image'
 import { Button } from '../../../components/ui/button'
-import { BugWithRelations, BugStatus, BugPriority, CommentWithAuthor } from '../../../src/types'
+import { BugWithRelations, CommentWithAuthor } from '../../../src/types'
 
 export default function BugDetailPage() {
   const { id } = useParams()
@@ -42,7 +42,7 @@ export default function BugDetailPage() {
     }
   }
 
-  const handleStatusChange = async (newStatus: BugStatus) => {
+  const handleStatusChange = async (newStatus: string) => {
     if (!bug) return
 
     try {
@@ -60,13 +60,13 @@ export default function BugDetailPage() {
         throw new Error('Ошибка обновления статуса')
       }
 
-      setBug({ ...bug, status: newStatus })
+      setBug({ ...bug, status: newStatus as any })
     } catch (err) {
       console.error('Ошибка обновления статуса:', err)
     }
   }
 
-  const handlePriorityChange = async (newPriority: BugPriority) => {
+  const handlePriorityChange = async (newPriority: string) => {
     if (!bug) return
 
     try {
@@ -84,7 +84,7 @@ export default function BugDetailPage() {
         throw new Error('Ошибка обновления приоритета')
       }
 
-      setBug({ ...bug, priority: newPriority })
+      setBug({ ...bug, priority: newPriority as any })
     } catch (err) {
       console.error('Ошибка обновления приоритета:', err)
     }
@@ -123,18 +123,20 @@ export default function BugDetailPage() {
     }
   }
 
-  const getStatusColor = (status: BugStatus) => {
+  const getStatusColor = (status: string) => {
     switch (status) {
       case 'NEW': return 'bg-red-100 text-red-800'
       case 'IN_PROGRESS': return 'bg-yellow-100 text-yellow-800'
       case 'TESTING': return 'bg-blue-100 text-blue-800'
       case 'READY_TO_RELEASE': return 'bg-green-100 text-green-800'
       case 'CLOSED': return 'bg-gray-100 text-gray-800'
+      case 'REQUIRES_DISCUSSION': return 'bg-orange-100 text-orange-800'
+      case 'OUTDATED': return 'bg-slate-100 text-slate-800'
       default: return 'bg-gray-100 text-gray-800'
     }
   }
 
-  const getPriorityColor = (priority: BugPriority) => {
+  const getPriorityColor = (priority: string) => {
     switch (priority) {
       case 'CRITICAL': return 'bg-red-500 text-white'
       case 'HIGH': return 'bg-orange-500 text-white'
@@ -144,18 +146,20 @@ export default function BugDetailPage() {
     }
   }
 
-  const getStatusLabel = (status: BugStatus) => {
+  const getStatusLabel = (status: string) => {
     switch (status) {
       case 'NEW': return 'Новый'
       case 'IN_PROGRESS': return 'В работе'
       case 'TESTING': return 'Тестирование'
       case 'READY_TO_RELEASE': return 'Готов к релизу'
       case 'CLOSED': return 'Закрыт'
+      case 'REQUIRES_DISCUSSION': return 'Требует обсуждения'
+      case 'OUTDATED': return 'Устарел'
       default: return status
     }
   }
 
-  const getPriorityLabel = (priority: BugPriority) => {
+  const getPriorityLabel = (priority: string) => {
     switch (priority) {
       case 'CRITICAL': return 'Критический'
       case 'HIGH': return 'Высокий'
@@ -381,7 +385,7 @@ export default function BugDetailPage() {
             <h3 className="text-lg font-semibold mb-3">Статус</h3>
             <select
               value={bug.status}
-              onChange={(e) => handleStatusChange(e.target.value as BugStatus)}
+              onChange={(e) => handleStatusChange(e.target.value)}
               className="w-full p-2 border border-gray-300 rounded"
             >
               <option value="NEW">Новый</option>
@@ -389,6 +393,8 @@ export default function BugDetailPage() {
               <option value="TESTING">Тестирование</option>
               <option value="READY_TO_RELEASE">Готов к релизу</option>
               <option value="CLOSED">Закрыт</option>
+              <option value="REQUIRES_DISCUSSION">Требует обсуждения</option>
+              <option value="OUTDATED">Устарел</option>
             </select>
           </div>
 
@@ -397,7 +403,7 @@ export default function BugDetailPage() {
             <h3 className="text-lg font-semibold mb-3">Приоритет</h3>
             <select
               value={bug.priority}
-              onChange={(e) => handlePriorityChange(e.target.value as BugPriority)}
+              onChange={(e) => handlePriorityChange(e.target.value)}
               className="w-full p-2 border border-gray-300 rounded"
             >
               <option value="LOW">Низкий</option>

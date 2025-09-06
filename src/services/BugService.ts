@@ -3,6 +3,7 @@ import { CommentDAO } from '../dao/CommentDAO'
 import { UserDAO } from '../dao/UserDAO'
 import { BugWithRelations, CreateBugRequest, UpdateBugRequest, CreateCommentRequest, DiscordBugReport } from '../types'
 import { BugStatus, BugType, BugPriority } from '../types'
+import { DiscordReactionService } from './DiscordReactionService'
 
 export class BugService {
   private bugDAO: BugDAO
@@ -57,6 +58,9 @@ export class BugService {
     const currentVram = getFieldValue('current_vram')
     const customData = getFieldValue('custom_data')
 
+    // Определяем статус на основе реакций Discord
+    const status = DiscordReactionService.getStatusFromReactions(discordData.reactions || [])
+    
     // Извлекаем URL скриншота
     const screenshotUrl = embed.image?.url
 
@@ -64,6 +68,7 @@ export class BugService {
       title,
       description,
       type,
+      status, // Используем статус из реакций вместо дефолтного NEW
       priority: BugPriority.MEDIUM,
       discordMessageId: discordData.id,
       discordChannelId: discordData.channel_id,
@@ -146,6 +151,8 @@ export class BugService {
       TESTING: [],
       READY_TO_RELEASE: [],
       CLOSED: [],
+      REQUIRES_DISCUSSION: [],
+      OUTDATED: [],
     }
 
     // Загружаем баги для каждого статуса
@@ -168,13 +175,10 @@ export class BugService {
 
     // Получаем статистику по типам (упрощенная версия)
     const byType: Record<BugType, number> = {
-      Gameplay: 0,
-      GameIdeas: 0,
-      UI: 0,
-      Performance: 0,
-      Audio: 0,
-      Graphics: 0,
-      Network: 0,
+      Bug: 0,
+      Feature: 0,
+      Improvement: 0,
+      Task: 0,
       Other: 0,
     }
 
@@ -184,19 +188,20 @@ export class BugService {
   private parseDiscordBugType(discordType: string): BugType {
     switch (discordType.toLowerCase()) {
       case 'gameplay':
-        return BugType.Gameplay
+      case 'bug':
+        return BugType.Bug
       case 'gameideas':
-        return BugType.GameIdeas
+      case 'feature':
+        return BugType.Feature
       case 'ui':
-        return BugType.UI
+      case 'improvement':
+        return BugType.Improvement
       case 'performance':
-        return BugType.Performance
+      case 'task':
+        return BugType.Task
       case 'audio':
-        return BugType.Audio
       case 'graphics':
-        return BugType.Graphics
       case 'network':
-        return BugType.Network
       default:
         return BugType.Other
     }

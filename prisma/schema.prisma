@@ -76,6 +76,8 @@ enum BugStatus {
   TESTING
   READY_TO_RELEASE
   CLOSED
+  REQUIRES_DISCUSSION
+  OUTDATED
 }
 
 enum BugPriority {

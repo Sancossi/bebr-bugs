@@ -15,6 +15,8 @@ export enum BugStatus {
   TESTING = 'TESTING',
   READY_TO_RELEASE = 'READY_TO_RELEASE',
   CLOSED = 'CLOSED',
+  REQUIRES_DISCUSSION = 'REQUIRES_DISCUSSION',
+  OUTDATED = 'OUTDATED',
 }
 
 export enum BugPriority {
@@ -71,6 +73,17 @@ export interface DiscordBugReport {
     id: string
     name: string
   }
+  reactions?: Array<{
+    emoji: {
+      name: string
+      id?: string
+    }
+    count: number
+    users?: Array<{
+      id: string
+      username: string
+    }>
+  }>
   severity?: string
 }
 
@@ -78,6 +91,7 @@ export interface CreateBugRequest {
   title: string
   description?: string
   type: BugType
+  status?: BugStatus
   priority: BugPriority
   assignedToId?: string
 }

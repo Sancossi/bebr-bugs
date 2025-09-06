@@ -67,9 +67,13 @@ export async function POST(req: NextRequest) {
           }
           
           const bug = await bugService.createBugFromDiscord({
+            type: 0,
             id: message.id,
             channel_id: message.channelId,
             content: message.content,
+            mentions: [],
+            mention_roles: [],
+            attachments: [],
             embeds: message.embeds,
             timestamp: message.createdAt.toISOString(),
             author: {
@@ -77,6 +81,7 @@ export async function POST(req: NextRequest) {
               username: message.author.username,
               bot: message.author.bot
             },
+            reactions: (message as any).reactionsData || [], // Добавляем реакции
             thread: message.thread ? {
               id: message.thread.id,
               name: message.thread.name

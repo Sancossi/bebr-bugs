@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { redirect } from 'next/navigation'
-import { Clock, Play, TestTube, CheckCircle, XCircle } from 'lucide-react'
+import { Bug, TestTube, Play, CheckCircle, XCircle, Clock, MessageCircle, Archive } from 'lucide-react'
 
 type BugData = {
   id: string
@@ -62,6 +62,20 @@ const statusConfig = {
     headerColor: 'bg-gray-100',
     iconColor: 'text-gray-600',
     icon: XCircle
+  },
+  REQUIRES_DISCUSSION: {
+    title: 'Требует обсуждения',
+    color: 'bg-orange-50',
+    headerColor: 'bg-orange-100',
+    iconColor: 'text-orange-600',
+    icon: MessageCircle
+  },
+  OUTDATED: {
+    title: 'Неактуальный',
+    color: 'bg-slate-50',
+    headerColor: 'bg-slate-100',
+    iconColor: 'text-slate-600',
+    icon: Archive
   }
 }
 
