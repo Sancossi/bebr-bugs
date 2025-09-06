@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { redirect } from 'next/navigation'
-import { Bug, TestTube, Play, CheckCircle, XCircle, Clock, MessageCircle, Archive } from 'lucide-react'
+import { Bug, TestTube, Play, CheckCircle, XCircle, Clock, MessageCircle, Archive, ChevronDown, ChevronUp } from 'lucide-react'
 
 type BugData = {
   id: string
@@ -178,7 +178,7 @@ function BugCard({ bug, onClick, onDragStart, onDragEnd, isDragging }: {
   )
 }
 
-function KanbanColumn({ status, bugs, onBugClick, onDrop, draggedBugId, onDragStart, onDragEnd }: {
+function KanbanColumn({ status, bugs, onBugClick, onDrop, draggedBugId, onDragStart, onDragEnd, isCollapsed, onToggleCollapse }: {
   status: string;
   bugs: BugData[];
   onBugClick: (bugId: string) => void;
@@ -186,6 +186,8 @@ function KanbanColumn({ status, bugs, onBugClick, onDrop, draggedBugId, onDragSt
   draggedBugId: string | null;
   onDragStart: (bugId: string) => void;
   onDragEnd: () => void;
+  isCollapsed: boolean;
+  onToggleCollapse: () => void;
 }) {
   const config = statusConfig[status as keyof typeof statusConfig]
   const Icon = config.icon
@@ -212,7 +214,9 @@ function KanbanColumn({ status, bugs, onBugClick, onDrop, draggedBugId, onDragSt
 
   return (
     <div
-      className={`${config.color} border rounded-lg p-4 min-h-[600px] w-80 transition-all ${
+      className={`${config.color} border rounded-lg p-4 transition-all ${
+        isCollapsed ? 'min-h-[100px] w-64' : 'min-h-[600px] w-80'
+      } ${
         isDragOver ? 'border-dashed border-2 border-blue-400 bg-blue-50' : ''
       } ${draggedBugId ? 'border-dashed border-2' : ''}`}
       onDragOver={handleDragOver}
@@ -225,24 +229,39 @@ function KanbanColumn({ status, bugs, onBugClick, onDrop, draggedBugId, onDragSt
             <Icon className={`h-5 w-5 ${config.iconColor}`} />
             <h3 className="font-semibold text-gray-800">{config.title}</h3>
           </div>
-          <span className="bg-white px-2 py-1 rounded-full text-sm font-medium text-gray-600">
-            {bugs.length}
-          </span>
+          <div className="flex items-center space-x-2">
+            <span className="bg-white px-2 py-1 rounded-full text-sm font-medium text-gray-600">
+              {bugs.length}
+            </span>
+            <button
+              onClick={onToggleCollapse}
+              className="p-1 hover:bg-white hover:bg-opacity-50 rounded transition-colors"
+              title={isCollapsed ? 'Развернуть колонку' : 'Свернуть колонку'}
+            >
+              {isCollapsed ? (
+                <ChevronDown className="h-4 w-4 text-gray-600" />
+              ) : (
+                <ChevronUp className="h-4 w-4 text-gray-600" />
+              )}
+            </button>
+          </div>
         </div>
       </div>
 
-      <div className="space-y-3">
-        {bugs.map((bug) => (
-          <BugCard
-            key={bug.id}
-            bug={bug}
-            onClick={() => onBugClick(bug.id)}
-            onDragStart={() => onDragStart(bug.id)}
-            onDragEnd={onDragEnd}
-            isDragging={draggedBugId === bug.id}
-          />
-        ))}
-      </div>
+      {!isCollapsed && (
+        <div className="space-y-3">
+          {bugs.map((bug) => (
+            <BugCard
+              key={bug.id}
+              bug={bug}
+              onClick={() => onBugClick(bug.id)}
+              onDragStart={() => onDragStart(bug.id)}
+              onDragEnd={onDragEnd}
+              isDragging={draggedBugId === bug.id}
+            />
+          ))}
+        </div>
+      )}
     </div>
   )
 }
@@ -253,6 +272,13 @@ export default function KanbanPage() {
   const [bugs, setBugs] = useState<Record<string, BugData[]>>({})
   const [loading, setLoading] = useState(true)
   const [draggedBugId, setDraggedBugId] = useState<string | null>(null)
+  
+  // Фильтры
+  const [filterType, setFilterType] = useState('')
+  const [filterPriority, setFilterPriority] = useState('')
+  
+  // Состояние сворачивания колонок
+  const [collapsedColumns, setCollapsedColumns] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -352,6 +378,28 @@ export default function KanbanPage() {
     setDraggedBugId(null)
   }
 
+  // Фильтрация багов
+  const filterBugs = (bugsArray: BugData[]) => {
+    return bugsArray.filter(bug => {
+      const matchesType = !filterType || bug.type === filterType
+      const matchesPriority = !filterPriority || bug.priority === filterPriority
+      return matchesType && matchesPriority
+    })
+  }
+
+  // Управление сворачиванием колонок
+  const toggleColumn = (status: string) => {
+    setCollapsedColumns(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(status)) {
+        newSet.delete(status)
+      } else {
+        newSet.add(status)
+      }
+      return newSet
+    })
+  }
+
   if (status === 'loading' || loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -367,17 +415,67 @@ export default function KanbanPage() {
         <p className="text-gray-600">Управляйте багами с помощью перетаскивания между колонками</p>
       </div>
 
+      {/* Фильтры */}
+      <div className="mb-6 flex flex-wrap gap-4 p-4 bg-gray-50 rounded-lg">
+        <div className="flex flex-col">
+          <label className="text-sm font-medium text-gray-700 mb-1">Тип</label>
+          <select
+            value={filterType}
+            onChange={(e) => setFilterType(e.target.value)}
+            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="">Все типы</option>
+            <option value="Bug">Bug</option>
+            <option value="Feature">Feature</option>
+            <option value="Improvement">Improvement</option>
+            <option value="Task">Task</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+
+        <div className="flex flex-col">
+          <label className="text-sm font-medium text-gray-700 mb-1">Приоритет</label>
+          <select
+            value={filterPriority}
+            onChange={(e) => setFilterPriority(e.target.value)}
+            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="">Все приоритеты</option>
+            <option value="LOW">Низкий</option>
+            <option value="MEDIUM">Средний</option>
+            <option value="HIGH">Высокий</option>
+            <option value="CRITICAL">Критический</option>
+          </select>
+        </div>
+
+        {(filterType || filterPriority) && (
+          <div className="flex items-end">
+            <button
+              onClick={() => {
+                setFilterType('')
+                setFilterPriority('')
+              }}
+              className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 underline"
+            >
+              Сбросить фильтры
+            </button>
+          </div>
+        )}
+      </div>
+
       <div className="flex gap-6 overflow-x-auto pb-4">
         {Object.keys(statusConfig).map((status) => (
           <KanbanColumn
             key={status}
             status={status}
-            bugs={bugs[status] || []}
+            bugs={filterBugs(bugs[status] || [])}
             onBugClick={handleBugClick}
             onDrop={handleDrop}
             draggedBugId={draggedBugId}
             onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
+            isCollapsed={collapsedColumns.has(status)}
+            onToggleCollapse={() => toggleColumn(status)}
           />
         ))}
       </div>

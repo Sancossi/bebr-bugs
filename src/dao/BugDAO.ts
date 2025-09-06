@@ -58,16 +58,23 @@ export class BugDAO {
     type?: BugType
     assignedToId?: string
     reportedById?: string
+    search?: string
     skip?: number
     take?: number
   } = {}): Promise<BugWithRelations[]> {
-    const { status, type, assignedToId, reportedById, skip = 0, take = 150 } = params
+    const { status, type, assignedToId, reportedById, search, skip = 0, take = 150 } = params
 
     const where: Prisma.BugWhereInput = {}
     if (status) where.status = status
     if (type) where.type = type
     if (assignedToId) where.assignedToId = assignedToId
     if (reportedById) where.reportedById = reportedById
+    if (search) {
+      where.OR = [
+        { title: { contains: search } },
+        { description: { contains: search } }
+      ]
+    }
 
     return await prisma.bug.findMany({
       where,
@@ -122,14 +129,21 @@ export class BugDAO {
     type?: BugType
     assignedToId?: string
     reportedById?: string
+    search?: string
   } = {}): Promise<number> {
-    const { status, type, assignedToId, reportedById } = params
+    const { status, type, assignedToId, reportedById, search } = params
 
     const where: Prisma.BugWhereInput = {}
     if (status) where.status = status
     if (type) where.type = type
     if (assignedToId) where.assignedToId = assignedToId
     if (reportedById) where.reportedById = reportedById
+    if (search) {
+      where.OR = [
+        { title: { contains: search } },
+        { description: { contains: search } }
+      ]
+    }
 
     return await prisma.bug.count({ where })
   }

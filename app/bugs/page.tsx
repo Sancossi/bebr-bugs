@@ -161,6 +161,12 @@ export default function BugsPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [filterStatus, setFilterStatus] = useState('')
   const [filterType, setFilterType] = useState('')
+  
+  // Пагинация
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalBugs, setTotalBugs] = useState(0)
+  const bugsPerPage = 20
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -170,16 +176,28 @@ export default function BugsPage() {
 
   useEffect(() => {
     if (status === 'authenticated') {
-      fetchBugs()
+      fetchBugs(1) // Сброс на первую страницу при изменении фильтров
     }
-  }, [status])
+  }, [status, filterStatus, filterType, searchTerm])
 
-  const fetchBugs = async () => {
+  const fetchBugs = async (page = 1) => {
     try {
-      const response = await fetch('/api/bugs')
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: bugsPerPage.toString(),
+      })
+      
+      if (filterStatus) params.append('status', filterStatus)
+      if (filterType) params.append('type', filterType)
+      if (searchTerm) params.append('search', searchTerm)
+      
+      const response = await fetch(`/api/bugs?${params.toString()}`)
       if (response.ok) {
         const data = await response.json()
         setBugs(data.data?.bugs || [])
+        setTotalPages(data.data?.totalPages || 1)
+        setTotalBugs(data.data?.total || 0)
+        setCurrentPage(page)
       }
     } catch (error) {
       console.error('Error fetching bugs:', error)
@@ -188,14 +206,11 @@ export default function BugsPage() {
     }
   }
 
-  const filteredBugs = bugs.filter(bug => {
-    const matchesSearch = bug.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         bug.description?.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesStatus = !filterStatus || bug.status === filterStatus
-    const matchesType = !filterType || bug.type === filterType
-    
-    return matchesSearch && matchesStatus && matchesType
-  })
+  const filteredBugs = bugs // Убираем клиентскую фильтрацию, так как теперь фильтруем на сервере
+
+  const handlePageChange = (page: number) => {
+    fetchBugs(page)
+  }
 
   if (status === 'loading' || loading) {
     return (
@@ -315,6 +330,49 @@ export default function BugsPage() {
           </table>
         </div>
       </div>
+
+      {/* Пагинация */}
+      {totalPages > 1 && (
+        <div className="flex justify-center items-center gap-2 mb-6">
+          <Button
+            variant="outline"
+            onClick={() => handlePageChange(currentPage - 1)}
+            disabled={currentPage === 1}
+          >
+            Предыдущая
+          </Button>
+          
+          <div className="flex items-center gap-2">
+            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+              const page = Math.max(1, Math.min(totalPages - 4, currentPage - 2)) + i
+              if (page > totalPages) return null
+              
+              return (
+                <Button
+                  key={page}
+                  variant={currentPage === page ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => handlePageChange(page)}
+                >
+                  {page}
+                </Button>
+              )
+            })}
+          </div>
+          
+          <Button
+            variant="outline"
+            onClick={() => handlePageChange(currentPage + 1)}
+            disabled={currentPage === totalPages}
+          >
+            Следующая
+          </Button>
+          
+          <div className="text-sm text-muted-foreground ml-4">
+            Страница {currentPage} из {totalPages} • Всего багов: {totalBugs}
+          </div>
+        </div>
+      )}
 
       {/* Статистика */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

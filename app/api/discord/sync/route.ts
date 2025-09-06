@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
       const messages = await discordService.getMessagesFromChannels([
         qaChannelId,
         gameIdeasChannelId
-      ], 100) 
+      ], 500) // Увеличиваем лимит до 500 сообщений
       
       console.log(`📥 Получено ${messages.length} сообщений из Discord`)
       

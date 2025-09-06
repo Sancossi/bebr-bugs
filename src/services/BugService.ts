@@ -105,6 +105,7 @@ export class BugService {
     type?: BugType
     assignedToId?: string
     reportedById?: string
+    search?: string
     page?: number
     limit?: number
   } = {}): Promise<{ bugs: BugWithRelations[], total: number, totalPages: number }> {

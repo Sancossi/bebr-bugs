@@ -61,34 +61,70 @@ export class DiscordService {
         throw new Error(`Канал ${channelId} не найден или не является текстовым`)
       }
 
-      const messages = await channel.messages.fetch({ limit })
-      const messagesArray = Array.from(messages.values())
+      const allMessages: any[] = []
+      let lastMessageId: string | undefined = undefined
+      const maxPerRequest = 100 // Discord API лимит
       
-      // Получаем реакции для каждого сообщения
-      for (const message of messagesArray) {
-        if (message.reactions.cache.size > 0) {
-          // Получаем детальную информацию о реакциях
-          const reactions = []
-          for (const reaction of Array.from(message.reactions.cache.values())) {
-            const users = await reaction.users.fetch()
-            reactions.push({
-              emoji: {
-                name: reaction.emoji.name,
-                id: reaction.emoji.id
-              },
-              count: reaction.count,
-              users: Array.from(users.values()).map((user: any) => ({
-                id: user.id,
-                username: user.username
-              }))
-            })
-          }
-          // Добавляем реакции к объекту сообщения
-          ;(message as any).reactionsData = reactions
+      // Получаем сообщения порциями по 100
+      while (allMessages.length < limit) {
+        const remainingLimit = Math.min(maxPerRequest, limit - allMessages.length)
+        
+        const fetchOptions: any = { limit: remainingLimit }
+        if (lastMessageId) {
+          fetchOptions.before = lastMessageId
+        }
+        
+        const messages = await channel.messages.fetch(fetchOptions)
+        const messagesArray: any[] = []
+        
+        // Преобразуем Collection в массив с приведением типов
+        ;(messages as any).forEach((message: any) => {
+          messagesArray.push(message)
+        })
+        
+        if (messagesArray.length === 0) {
+          break // Больше сообщений нет
+        }
+        
+        allMessages.push(...messagesArray)
+        const lastMessage = messagesArray[messagesArray.length - 1]
+        lastMessageId = lastMessage?.id
+        
+        // Если получили меньше чем запрашивали, значит это все сообщения
+        if (messagesArray.length < remainingLimit) {
+          break
         }
       }
       
-      return messagesArray
+      console.log(`📥 Получено ${allMessages.length} сообщений из канала ${channelId}`)
+      
+      // Получаем базовую информацию о реакциях (без пользователей для упрощения)
+      for (const message of allMessages) {
+        if (message.reactions && message.reactions.cache && message.reactions.cache.size > 0) {
+          const reactions: any[] = []
+          
+          try {
+            ;(message.reactions.cache as any).forEach((reaction: any) => {
+              if (reaction.emoji) {
+                reactions.push({
+                  emoji: {
+                    name: reaction.emoji.name || '',
+                    id: reaction.emoji.id || null
+                  },
+                  count: reaction.count || 0
+                })
+              }
+            })
+            
+            // Добавляем реакции к объекту сообщения
+            ;(message as any).reactionsData = reactions
+          } catch (reactionError) {
+            console.warn(`Ошибка получения реакций для сообщения ${message.id}:`, reactionError)
+          }
+        }
+      }
+      
+      return allMessages
     } catch (error) {
       console.error(`Ошибка получения сообщений из канала ${channelId}:`, error)
       throw error
