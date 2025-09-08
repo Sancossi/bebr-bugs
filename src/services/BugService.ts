@@ -1,7 +1,6 @@
 import { BugDAO } from '../dao/BugDAO'
 import { CommentDAO } from '../dao/CommentDAO'
 import { UserDAO } from '../dao/UserDAO'
-import { ImageService } from './ImageService'
 import { BugWithRelations, CreateBugRequest, UpdateBugRequest, CreateCommentRequest, DiscordBugReport } from '../types'
 import { BugStatus, BugType, BugPriority } from '../types'
 import { DiscordReactionService } from './DiscordReactionService'
@@ -10,13 +9,11 @@ export class BugService {
   private bugDAO: BugDAO
   private commentDAO: CommentDAO
   private userDAO: UserDAO
-  private imageService: ImageService
 
   constructor() {
     this.bugDAO = new BugDAO()
     this.commentDAO = new CommentDAO()
     this.userDAO = new UserDAO()
-    this.imageService = new ImageService()
   }
 
   async createBug(data: CreateBugRequest, reportedById?: string): Promise<BugWithRelations> {
@@ -105,25 +102,6 @@ export class BugService {
       screenshotUrl,
       createdAt, // Используем дату из Discord сообщения
     })
-
-    // Скачиваем изображение асинхронно после создания бага
-    if (screenshotUrl && screenshotUrl.includes('cdn.discordapp.com')) {
-      console.log('📥 Скачиваем Discord изображение для бага:', bug.id)
-      
-      // Скачиваем изображение в фоновом режиме
-      this.imageService.downloadDiscordImage(screenshotUrl, bug.id).then(localUrl => {
-        if (localUrl && localUrl !== screenshotUrl) {
-          // Обновляем баг с локальным URL
-          this.bugDAO.update(bug.id, { screenshotUrl: localUrl }).then(() => {
-            console.log(`✅ Обновлен баг ${bug.id} с локальным изображением: ${localUrl}`)
-          }).catch(error => {
-            console.error(`❌ Ошибка обновления бага ${bug.id} с локальным изображением:`, error)
-          })
-        }
-      }).catch(error => {
-        console.error(`❌ Ошибка скачивания изображения для бага ${bug.id}:`, error)
-      })
-    }
 
     if (steamId) {
       console.log(`✅ Создан новый баг "${title}" с Steam ID: ${steamId}`)
@@ -384,7 +362,7 @@ export class BugService {
       updates.screenshotUrl = newScreenshotUrl
       hasUpdates = true
       console.log(`🖼️ Обновлена ссылка на изображение для бага "${existingBug.title}"`)
-      console.log(`   Старая: ${existingBug.screenshotUrl}`)
+      console.log(`   Старая: ${existingBug.screenshotUrl || 'отсутствует'}`)
       console.log(`   Новая: ${newScreenshotUrl}`)
     }
 
