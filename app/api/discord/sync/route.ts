@@ -39,6 +39,8 @@ export async function POST(req: NextRequest) {
       const results = []
       let newBugs = 0
       let existingBugs = 0
+      let updatedWithSteamId = 0
+      let updatedImages = 0
       let errors = 0
       
       for (const message of messages) {
@@ -56,13 +58,84 @@ export async function POST(req: NextRequest) {
           const existingBug = await bugService.getBugByDiscordMessageId(message.id)
           
           if (existingBug) {
-            existingBugs++
-            results.push({
-              messageId: message.id,
-              title: embed.title,
-              status: "existing",
-              bugId: existingBug.id
+            // Пытаемся создать/обновить баг - метод createBugFromDiscord теперь 
+            // автоматически обновляет существующие баги с Steam ID
+            const bug = await bugService.createBugFromDiscord({
+              type: 0,
+              id: message.id,
+              channel_id: message.channelId,
+              content: message.content,
+              mentions: [],
+              mention_roles: [],
+              attachments: [],
+              embeds: message.embeds,
+              timestamp: message.createdAt.toISOString(),
+              author: {
+                id: message.author.id,
+                username: message.author.username,
+                bot: message.author.bot
+              },
+              reactions: (message as any).reactionsData || [], // Добавляем реакции
+              thread: message.thread ? {
+                id: message.thread.id,
+                name: message.thread.name
+              } : undefined
             })
+
+            // Проверяем, был ли баг обновлен с Steam ID
+            const updatedBug = await bugService.getBugByDiscordMessageId(message.id)
+            const hadSteamIdBefore = !!(existingBug as any).steamId
+            const hasSteamIdNow = !!(updatedBug as any).steamId
+            const hadImageBefore = existingBug.screenshotUrl
+            const hasImageNow = updatedBug?.screenshotUrl
+            const imageUpdated = hadImageBefore !== hasImageNow
+
+            if (!hadSteamIdBefore && hasSteamIdNow && imageUpdated) {
+              updatedWithSteamId++
+              updatedImages++
+              results.push({
+                messageId: message.id,
+                title: embed.title,
+                status: "updated_with_steam_id_and_image",
+                bugId: existingBug.id,
+                steamId: (updatedBug as any).steamId,
+                imageUrl: hasImageNow
+              })
+            } else if (!hadSteamIdBefore && hasSteamIdNow) {
+              updatedWithSteamId++
+              results.push({
+                messageId: message.id,
+                title: embed.title,
+                status: "updated_with_steam_id",
+                bugId: existingBug.id,
+                steamId: (updatedBug as any).steamId
+              })
+            } else if (imageUpdated) {
+              updatedImages++
+              results.push({
+                messageId: message.id,
+                title: embed.title,
+                status: "updated_image",
+                bugId: existingBug.id,
+                imageUrl: hasImageNow
+              })
+            } else if (hadSteamIdBefore) {
+              existingBugs++
+              results.push({
+                messageId: message.id,
+                title: embed.title,
+                status: "existing",
+                bugId: existingBug.id
+              })
+            } else {
+              existingBugs++
+              results.push({
+                messageId: message.id,
+                title: embed.title,
+                status: "existing_no_steam_id",
+                bugId: existingBug.id
+              })
+            }
             continue
           }
           
@@ -94,7 +167,8 @@ export async function POST(req: NextRequest) {
               messageId: message.id,
               title: bug.title,
               status: "created",
-              bugId: bug.id
+              bugId: bug.id,
+              steamId: (bug as any).steamId || undefined
             })
             console.log("✅ Создан баг:", bug.title)
           } else {
@@ -123,6 +197,8 @@ export async function POST(req: NextRequest) {
         processed: results.length,
         newBugs,
         existingBugs,
+        updatedWithSteamId,
+        updatedImages,
         errors,
         timestamp: new Date().toISOString()
       }

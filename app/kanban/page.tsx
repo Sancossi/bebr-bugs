@@ -176,6 +176,15 @@ function BugCard({ bug, onClick, onDragStart, onDragEnd, isDragging }: {
           </div>
         )}
       </div>
+
+      {(bug as any).steamId && (
+        <div className="mt-2 pt-2 border-t border-gray-100">
+          <div className="flex items-center space-x-1">
+            <span className="text-xs text-gray-500">Steam ID:</span>
+            <span className="text-xs font-mono text-gray-700">{(bug as any).steamId}</span>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

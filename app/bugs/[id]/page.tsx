@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import Image from 'next/image'
+import { Edit2, Save, X, ExternalLink } from 'lucide-react'
 import { Button } from '../../../components/ui/button'
 import { ClickableImage } from '../../../components/ui/ClickableImage'
 import { BugWithRelations, CommentWithAuthor } from '../../../src/types'
@@ -17,6 +18,13 @@ export default function BugDetailPage() {
   const [error, setError] = useState<string | null>(null)
   const [newComment, setNewComment] = useState('')
   const [addingComment, setAddingComment] = useState(false)
+  
+  // Состояния для редактирования
+  const [isEditingTitle, setIsEditingTitle] = useState(false)
+  const [isEditingDescription, setIsEditingDescription] = useState(false)
+  const [editedTitle, setEditedTitle] = useState('')
+  const [editedDescription, setEditedDescription] = useState('')
+  const [saving, setSaving] = useState(false)
 
   useEffect(() => {
     if (id) {
@@ -40,6 +48,64 @@ export default function BugDetailPage() {
       setError(err instanceof Error ? err.message : 'Ошибка загрузки')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleSaveTitle = async () => {
+    if (!bug || !editedTitle.trim()) return
+
+    setSaving(true)
+    try {
+      const response = await fetch(`/api/bugs/${bug.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: editedTitle.trim(),
+        }),
+      })
+
+      if (response.ok) {
+        setBug(prev => prev ? { ...prev, title: editedTitle.trim() } : null)
+        setIsEditingTitle(false)
+      } else {
+        throw new Error('Ошибка сохранения заголовка')
+      }
+    } catch (error) {
+      console.error('Ошибка сохранения заголовка:', error)
+      alert('Ошибка сохранения заголовка')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleSaveDescription = async () => {
+    if (!bug) return
+
+    setSaving(true)
+    try {
+      const response = await fetch(`/api/bugs/${bug.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          description: editedDescription.trim() || null,
+        }),
+      })
+
+      if (response.ok) {
+        setBug(prev => prev ? { ...prev, description: editedDescription.trim() || null } : null)
+        setIsEditingDescription(false)
+      } else {
+        throw new Error('Ошибка сохранения описания')
+      }
+    } catch (error) {
+      console.error('Ошибка сохранения описания:', error)
+      alert('Ошибка сохранения описания')
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -124,6 +190,24 @@ export default function BugDetailPage() {
     }
   }
 
+  const getDiscordMessageUrl = (messageId: string, channelId?: string) => {
+    // Используем правильный Guild ID
+    const guildId = process.env.NEXT_PUBLIC_DISCORD_GUILD_ID || '1044024277634134116' // Правильный Guild ID
+    
+    // Используем channelId из данных бага, если он есть, иначе дефолтный
+    const targetChannelId = channelId || process.env.NEXT_PUBLIC_DISCORD_DEFAULT_CHANNEL_ID || '1411777081804849325'
+    
+    console.log('🔗 Discord URL данные:', {
+      messageId,
+      channelId,
+      targetChannelId,
+      guildId,
+      bugChannelId: bug?.discordChannelId
+    })
+    
+    return `https://discord.com/channels/${guildId}/${targetChannelId}/${messageId}`
+  }
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'NEW': return 'bg-red-100 text-red-800'
@@ -170,6 +254,23 @@ export default function BugDetailPage() {
     }
   }
 
+  const startEditingTitle = () => {
+    setEditedTitle(bug?.title || '')
+    setIsEditingTitle(true)
+  }
+
+  const startEditingDescription = () => {
+    setEditedDescription(bug?.description || '')
+    setIsEditingDescription(true)
+  }
+
+  const cancelEditing = () => {
+    setIsEditingTitle(false)
+    setIsEditingDescription(false)
+    setEditedTitle('')
+    setEditedDescription('')
+  }
+
   if (loading) {
     return (
       <div className="container mx-auto px-4 py-8">
@@ -202,7 +303,54 @@ export default function BugDetailPage() {
         >
           ← Назад
         </Button>
-        <h1 className="text-3xl font-bold mb-2">{bug.title}</h1>
+        
+        {/* Заголовок с возможностью редактирования */}
+        <div className="flex items-center gap-3 mb-2">
+          {isEditingTitle ? (
+            <div className="flex-1 flex items-center gap-2">
+              <input
+                type="text"
+                value={editedTitle}
+                onChange={(e) => setEditedTitle(e.target.value)}
+                className="flex-1 text-3xl font-bold border-b-2 border-blue-500 bg-transparent focus:outline-none"
+                placeholder="Заголовок бага"
+                autoFocus
+              />
+              <Button
+                size="sm"
+                onClick={handleSaveTitle}
+                disabled={saving || !editedTitle.trim()}
+                className="text-green-600 hover:text-green-800"
+              >
+                <Save className="h-4 w-4" />
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={cancelEditing}
+                disabled={saving}
+                className="text-gray-600 hover:text-gray-800"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          ) : (
+            <>
+              <h1 className="text-3xl font-bold flex-1">{bug.title}</h1>
+              {session?.user && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={startEditingTitle}
+                  className="text-gray-600 hover:text-gray-800"
+                >
+                  <Edit2 className="h-4 w-4" />
+                </Button>
+              )}
+            </>
+          )}
+        </div>
+        
         <div className="flex gap-2 mb-4">
           <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(bug.status)}`}>
             {getStatusLabel(bug.status)}
@@ -220,12 +368,61 @@ export default function BugDetailPage() {
         {/* Основная информация */}
         <div className="lg:col-span-2 space-y-6">
           {/* Описание */}
-          {bug.description && (
-            <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-xl font-semibold mb-3">Описание</h2>
-              <p className="text-gray-700 whitespace-pre-wrap">{bug.description}</p>
+          <div className="bg-white rounded-lg shadow p-6">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-xl font-semibold">Описание</h2>
+              {session?.user && !isEditingDescription && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={startEditingDescription}
+                  className="text-gray-600 hover:text-gray-800"
+                >
+                  <Edit2 className="h-4 w-4" />
+                </Button>
+              )}
             </div>
-          )}
+            
+            {isEditingDescription ? (
+              <div className="space-y-3">
+                <textarea
+                  value={editedDescription}
+                  onChange={(e) => setEditedDescription(e.target.value)}
+                  className="w-full h-32 p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-vertical"
+                  placeholder="Описание бага (опционально)"
+                />
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    onClick={handleSaveDescription}
+                    disabled={saving}
+                    className="text-green-600 hover:text-green-800"
+                  >
+                    <Save className="h-4 w-4 mr-1" />
+                    Сохранить
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={cancelEditing}
+                    disabled={saving}
+                    className="text-gray-600 hover:text-gray-800"
+                  >
+                    <X className="h-4 w-4 mr-1" />
+                    Отмена
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div>
+                {bug.description ? (
+                  <p className="text-gray-700 whitespace-pre-wrap">{bug.description}</p>
+                ) : (
+                  <p className="text-gray-500 italic">Описание не добавлено</p>
+                )}
+              </div>
+            )}
+          </div>
 
           {/* Скриншот */}
           {bug.screenshotUrl && (
@@ -427,9 +624,40 @@ export default function BugDetailPage() {
               </div>
               {bug.discordMessageId && (
                 <div>
-                  <span className="font-medium text-gray-600">Discord ID:</span>
+                  <span className="font-medium text-gray-600">Discord:</span>
+                  <div className="space-y-1 mt-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-gray-500">Message ID:</span>
+                      <div className="text-gray-700 font-mono text-xs flex-1">
+                        {bug.discordMessageId}
+                      </div>
+                      <a
+                        href={getDiscordMessageUrl(bug.discordMessageId, bug.discordChannelId)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 text-xs transition-colors"
+                        title="Открыть в Discord"
+                      >
+                        <ExternalLink className="h-3 w-3" />
+                        Открыть
+                      </a>
+                    </div>
+                    {bug.discordChannelId && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-gray-500">Channel ID:</span>
+                        <div className="text-gray-600 font-mono text-xs">
+                          {bug.discordChannelId}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+              {(bug as any).steamId && (
+                <div>
+                  <span className="font-medium text-gray-600">Steam ID:</span>
                   <div className="text-gray-700 font-mono text-xs">
-                    {bug.discordMessageId}
+                    {(bug as any).steamId}
                   </div>
                 </div>
               )}

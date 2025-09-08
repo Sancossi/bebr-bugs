@@ -163,6 +163,7 @@ export default function BugsPage() {
   const [filterStatus, setFilterStatus] = useState('')
   const [filterType, setFilterType] = useState('')
   const [filterLevel, setFilterLevel] = useState('')
+  const [steamIdSearch, setSteamIdSearch] = useState('')
   
   // Пагинация
   const [currentPage, setCurrentPage] = useState(1)
@@ -180,7 +181,7 @@ export default function BugsPage() {
     if (status === 'authenticated') {
       fetchBugs(1) // Сброс на первую страницу при изменении фильтров
     }
-  }, [status, filterStatus, filterType, filterLevel, searchTerm])
+  }, [status, filterStatus, filterType, filterLevel, searchTerm, steamIdSearch])
 
   const fetchBugs = async (page = 1) => {
     try {
@@ -193,6 +194,7 @@ export default function BugsPage() {
       if (filterType) params.append('type', filterType)
       if (filterLevel) params.append('level', filterLevel)
       if (searchTerm) params.append('search', searchTerm)
+      if (steamIdSearch) params.append('steamId', steamIdSearch)
       
       const response = await fetch(`/api/bugs?${params.toString()}`)
       if (response.ok) {
@@ -248,55 +250,90 @@ export default function BugsPage() {
 
       {/* Фильтры и поиск */}
       <div className="bg-card border rounded-lg p-6">
-        <div className="flex flex-col md:flex-row gap-4">
-          <div className="flex-1">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <input
-                type="text"
-                placeholder="Поиск багов..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-              />
+        <div className="flex flex-col gap-4">
+          {/* Первая строка - основной поиск */}
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="flex-1">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <input
+                  type="text"
+                  placeholder="Поиск багов..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+              </div>
+            </div>
+            
+            <div className="flex-1">
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Поиск по Steam ID..."
+                  value={steamIdSearch}
+                  onChange={(e) => setSteamIdSearch(e.target.value)}
+                  className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary font-mono"
+                />
+              </div>
             </div>
           </div>
           
-          <select
-            value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
-            className="px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-          >
-            <option value="">Все статусы</option>
-            <option value="NEW">Новые</option>
-            <option value="IN_PROGRESS">В работе</option>
-            <option value="TESTING">Тестирование</option>
-            <option value="READY_TO_RELEASE">Готов к релизу</option>
-            <option value="CLOSED">Закрыты</option>
-            <option value="REQUIRES_DISCUSSION">Требует обсуждения</option>
-            <option value="OUTDATED">Неактуальные</option>
-          </select>
-          
-          <select
-            value={filterType}
-            onChange={(e) => setFilterType(e.target.value)}
-            className="px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-          >
-            <option value="">Все типы</option>
-            <option value="Bug">Bug</option>
-            <option value="Feature">Feature</option>
-            <option value="Improvement">Improvement</option>
-            <option value="Task">Task</option>
-            <option value="Other">Other</option>
-          </select>
-          
-          <input
-            type="text"
-            placeholder="Уровень..."
-            value={filterLevel}
-            onChange={(e) => setFilterLevel(e.target.value)}
-            className="px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-          />
+          {/* Вторая строка - фильтры */}
+          <div className="flex flex-col md:flex-row gap-4">
+            <select
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+              className="px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+            >
+              <option value="">Все статусы</option>
+              <option value="NEW">Новые</option>
+              <option value="IN_PROGRESS">В работе</option>
+              <option value="TESTING">Тестирование</option>
+              <option value="READY_TO_RELEASE">Готов к релизу</option>
+              <option value="CLOSED">Закрыты</option>
+              <option value="REQUIRES_DISCUSSION">Требует обсуждения</option>
+              <option value="OUTDATED">Неактуальные</option>
+            </select>
+            
+            <select
+              value={filterType}
+              onChange={(e) => setFilterType(e.target.value)}
+              className="px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+            >
+              <option value="">Все типы</option>
+              <option value="Bug">Баг</option>
+              <option value="Feature">Функция</option>
+              <option value="Improvement">Улучшение</option>
+              <option value="Task">Задача</option>
+              <option value="Other">Другое</option>
+            </select>
+            
+            <select
+              value={filterLevel}
+              onChange={(e) => setFilterLevel(e.target.value)}
+              className="px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+            >
+              <option value="">Все уровни</option>
+            </select>
+            
+            {/* Кнопка очистки фильтров */}
+            {(searchTerm || steamIdSearch || filterStatus || filterType || filterLevel) && (
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setSearchTerm('')
+                  setSteamIdSearch('')
+                  setFilterStatus('')
+                  setFilterType('')
+                  setFilterLevel('')
+                }}
+                className="whitespace-nowrap"
+              >
+                Очистить фильтры
+              </Button>
+            )}
+          </div>
         </div>
       </div>
 

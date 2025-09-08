@@ -20,7 +20,7 @@ export function ImageModal({ src, alt, isOpen, onClose }: ImageModalProps) {
   // Сброс состояния при открытии/закрытии модала
   useEffect(() => {
     if (isOpen) {
-      setZoom(1)
+      setZoom(0.9) // Устанавливаем 75% вместо 100%
       setRotation(0)
       setPosition({ x: 0, y: 0 })
       document.body.style.overflow = 'hidden'

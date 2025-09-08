@@ -67,11 +67,12 @@ export class BugDAO {
     assignedToId?: string
     reportedById?: string
     search?: string
+    steamId?: string
     level?: string
     skip?: number
     take?: number
   } = {}): Promise<BugWithRelations[]> {
-    const { status, type, assignedToId, reportedById, search, level, skip = 0, take = 150 } = params
+    const { status, type, assignedToId, reportedById, search, steamId, level, skip = 0, take = 150 } = params
 
     const where: Prisma.BugWhereInput = {}
     if (status) where.status = status
@@ -79,6 +80,8 @@ export class BugDAO {
     if (assignedToId) where.assignedToId = assignedToId
     if (reportedById) where.reportedById = reportedById
     if (level) where.level = { contains: level }
+    // Временно закомментируем steamId до обновления Prisma Client
+    // if (steamId) where.steamId = { contains: steamId }
     if (search) {
       where.OR = [
         { title: { contains: search } },
@@ -140,9 +143,10 @@ export class BugDAO {
     assignedToId?: string
     reportedById?: string
     search?: string
+    steamId?: string
     level?: string
   } = {}): Promise<number> {
-    const { status, type, assignedToId, reportedById, search, level } = params
+    const { status, type, assignedToId, reportedById, search, steamId, level } = params
 
     const where: Prisma.BugWhereInput = {}
     if (status) where.status = status
@@ -150,6 +154,8 @@ export class BugDAO {
     if (assignedToId) where.assignedToId = assignedToId
     if (reportedById) where.reportedById = reportedById
     if (level) where.level = { contains: level }
+    // Временно закомментируем steamId до обновления Prisma Client
+    // if (steamId) where.steamId = { contains: steamId }
     if (search) {
       where.OR = [
         { title: { contains: search } },

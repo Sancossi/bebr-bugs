@@ -94,6 +94,7 @@ export interface CreateBugRequest {
   status?: BugStatus
   priority: BugPriority
   assignedToId?: string
+  steamId?: string
 }
 
 export interface UpdateBugRequest {
@@ -103,6 +104,8 @@ export interface UpdateBugRequest {
   status?: BugStatus
   priority?: BugPriority
   assignedToId?: string
+  steamId?: string
+  screenshotUrl?: string
 }
 
 export interface CreateCommentRequest {

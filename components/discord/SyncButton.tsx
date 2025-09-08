@@ -10,14 +10,18 @@ interface SyncResult {
     total: number
     newBugs: number
     existingBugs: number
+    updatedWithSteamId: number
+    updatedImages: number
     errors: number
     timestamp: string
   }
   results?: Array<{
     messageId: string
     title: string
-    status: 'created' | 'existing' | 'error'
+    status: 'created' | 'existing' | 'updated_with_steam_id' | 'updated_image' | 'updated_with_steam_id_and_image' | 'existing_no_steam_id' | 'error'
     bugId?: string
+    steamId?: string
+    imageUrl?: string
     error?: string
   }>
   error?: string
@@ -63,6 +67,14 @@ export function SyncButton({ onSyncComplete }: { onSyncComplete?: () => void }) 
         return <CheckCircle className="h-4 w-4 text-green-600" />
       case 'existing':
         return <Clock className="h-4 w-4 text-blue-600" />
+      case 'updated_with_steam_id':
+        return <CheckCircle className="h-4 w-4 text-purple-600" />
+      case 'updated_image':
+        return <CheckCircle className="h-4 w-4 text-cyan-600" />
+      case 'updated_with_steam_id_and_image':
+        return <CheckCircle className="h-4 w-4 text-indigo-600" />
+      case 'existing_no_steam_id':
+        return <Clock className="h-4 w-4 text-yellow-600" />
       case 'error':
         return <AlertCircle className="h-4 w-4 text-red-600" />
       default:
@@ -76,6 +88,14 @@ export function SyncButton({ onSyncComplete }: { onSyncComplete?: () => void }) 
         return 'Создан'
       case 'existing':
         return 'Существует'
+      case 'updated_with_steam_id':
+        return 'Обновлен Steam ID'
+      case 'updated_image':
+        return 'Обновлено изображение'
+      case 'updated_with_steam_id_and_image':
+        return 'Обновлен Steam ID + изображение'
+      case 'existing_no_steam_id':
+        return 'Без Steam ID'
       case 'error':
         return 'Ошибка'
       default:
@@ -120,7 +140,7 @@ export function SyncButton({ onSyncComplete }: { onSyncComplete?: () => void }) 
               </div>
 
               {lastSync.summary && (
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                <div className="grid grid-cols-2 md:grid-cols-6 gap-4 text-sm">
                   <div className="text-center p-2 bg-blue-50 rounded">
                     <div className="font-semibold text-blue-800">
                       {lastSync.summary.total}
@@ -138,6 +158,18 @@ export function SyncButton({ onSyncComplete }: { onSyncComplete?: () => void }) 
                       {lastSync.summary.existingBugs}
                     </div>
                     <div className="text-yellow-600">Существующих</div>
+                  </div>
+                  <div className="text-center p-2 bg-purple-50 rounded">
+                    <div className="font-semibold text-purple-800">
+                      {lastSync.summary.updatedWithSteamId}
+                    </div>
+                    <div className="text-purple-600">Обновлено Steam ID</div>
+                  </div>
+                  <div className="text-center p-2 bg-cyan-50 rounded">
+                    <div className="font-semibold text-cyan-800">
+                      {lastSync.summary.updatedImages}
+                    </div>
+                    <div className="text-cyan-600">Обновлено изображений</div>
                   </div>
                   <div className="text-center p-2 bg-red-50 rounded">
                     <div className="font-semibold text-red-800">
@@ -183,10 +215,24 @@ export function SyncButton({ onSyncComplete }: { onSyncComplete?: () => void }) 
                       <span className={`px-2 py-1 rounded-full text-xs ${
                         result.status === 'created' ? 'bg-green-100 text-green-800' :
                         result.status === 'existing' ? 'bg-blue-100 text-blue-800' :
+                        result.status === 'updated_with_steam_id' ? 'bg-purple-100 text-purple-800' :
+                        result.status === 'updated_image' ? 'bg-cyan-100 text-cyan-800' :
+                        result.status === 'updated_with_steam_id_and_image' ? 'bg-indigo-100 text-indigo-800' :
+                        result.status === 'existing_no_steam_id' ? 'bg-yellow-100 text-yellow-800' :
                         'bg-red-100 text-red-800'
                       }`}>
                         {getStatusText(result.status)}
                       </span>
+                      {result.steamId && (
+                        <span className="text-xs text-muted-foreground font-mono">
+                          Steam: {result.steamId}
+                        </span>
+                      )}
+                      {result.imageUrl && (
+                        <span className="text-xs text-muted-foreground">
+                          🖼️ Изображение обновлено
+                        </span>
+                      )}
                     </div>
                   </div>
                 ))}
