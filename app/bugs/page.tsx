@@ -59,6 +59,8 @@ const typeColors = {
 }
 
 function BugRow({ bug, onClick }: { bug: BugData; onClick: () => void }) {
+  const router = useRouter()
+  
   return (
     <tr className="border-b hover:bg-muted/50 cursor-pointer" onClick={onClick}>
       <td className="p-4">
@@ -101,6 +103,23 @@ function BugRow({ bug, onClick }: { bug: BugData; onClick: () => void }) {
       
       <td className="p-4 text-sm">
         {bug.level || '-'}
+      </td>
+      
+      <td className="p-4">
+        {(bug as any).steamId ? (
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              router.push(`/steam/${(bug as any).steamId}`)
+            }}
+            className="text-blue-600 hover:text-blue-800 font-mono text-xs transition-colors underline decoration-dotted"
+            title="Посмотреть все баги этого пользователя"
+          >
+            {(bug as any).steamId}
+          </button>
+        ) : (
+          <span className="text-gray-400 text-xs">-</span>
+        )}
       </td>
       
       <td className="p-4">
@@ -348,6 +367,7 @@ export default function BugsPage() {
                 <th className="text-left p-4 font-medium">Статус</th>
                 <th className="text-left p-4 font-medium">Приоритет</th>
                 <th className="text-left p-4 font-medium">Уровень</th>
+                <th className="text-left p-4 font-medium">Steam ID</th>
                 <th className="text-left p-4 font-medium">Автор</th>
                 <th className="text-left p-4 font-medium">Назначен</th>
                 <th className="text-left p-4 font-medium">Создан</th>
@@ -365,7 +385,7 @@ export default function BugsPage() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={9} className="text-center py-8 text-muted-foreground">
+                  <td colSpan={10} className="text-center py-8 text-muted-foreground">
                     {searchTerm || filterStatus || filterType ? 
                       'Нет багов, соответствующих фильтрам' : 
                       'Багов пока нет. Синхронизируйте с Discord или создайте вручную.'

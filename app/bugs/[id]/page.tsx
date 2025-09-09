@@ -656,8 +656,14 @@ export default function BugDetailPage() {
               {(bug as any).steamId && (
                 <div>
                   <span className="font-medium text-gray-600">Steam ID:</span>
-                  <div className="text-gray-700 font-mono text-xs">
-                    {(bug as any).steamId}
+                  <div className="mt-1">
+                    <button
+                      onClick={() => router.push(`/steam/${(bug as any).steamId}`)}
+                      className="text-blue-600 hover:text-blue-800 font-mono text-xs transition-colors underline decoration-dotted"
+                      title="Посмотреть все баги этого пользователя"
+                    >
+                      {(bug as any).steamId}
+                    </button>
                   </div>
                 </div>
               )}

@@ -131,9 +131,41 @@ export class BugService {
     page?: number
     limit?: number
   } = {}): Promise<{ bugs: BugWithRelations[], total: number, totalPages: number }> {
-    const { page = 1, limit = 20, ...filters } = params
+    const { page = 1, limit = 20, steamId, ...filters } = params
     const skip = (page - 1) * limit
 
+    // Если есть поиск по Steam ID, используем специальную логику
+    if (steamId) {
+      const allFilteredBugs = await this.searchBugsBySteamId(steamId)
+      
+      // Применяем дополнительные фильтры
+      let finalBugs = allFilteredBugs
+      if (filters.status) {
+        finalBugs = finalBugs.filter(bug => bug.status === filters.status)
+      }
+      if (filters.type) {
+        finalBugs = finalBugs.filter(bug => bug.type === filters.type)
+      }
+      if (filters.search) {
+        const searchLower = filters.search.toLowerCase()
+        finalBugs = finalBugs.filter(bug => 
+          bug.title.toLowerCase().includes(searchLower) || 
+          (bug.description && bug.description.toLowerCase().includes(searchLower))
+        )
+      }
+      
+      // Применяем пагинацию
+      const total = finalBugs.length
+      const paginatedBugs = finalBugs.slice(skip, skip + limit)
+      
+      return {
+        bugs: paginatedBugs,
+        total,
+        totalPages: Math.ceil(total / limit),
+      }
+    }
+
+    // Обычная логика без Steam ID
     const [bugs, total] = await Promise.all([
       this.bugDAO.findAll({ ...filters, skip, take: limit }),
       this.bugDAO.count(filters),
@@ -383,10 +415,20 @@ export class BugService {
    * Поиск багов по Steam ID
    */
   async searchBugsBySteamId(steamId: string): Promise<BugWithRelations[]> {
-    // Пока используем общий поиск, позже добавим специальный метод
-    return await this.bugDAO.findAll({ 
-      steamId: steamId,
-      take: 100 
+    // Получаем все баги и фильтруем на уровне приложения
+    // пока не можем использовать фильтрацию на уровне БД
+    const bugs = await this.bugDAO.findAll({ 
+      take: 1000 // Увеличиваем лимит для поиска
     })
+    
+    // Фильтруем по Steam ID
+    const filteredBugs = bugs.filter(bug => {
+      const bugSteamId = (bug as any).steamId
+      return bugSteamId && bugSteamId.includes(steamId)
+    })
+    
+    console.log(`🔍 Поиск по Steam ID "${steamId}": найдено ${filteredBugs.length} багов из ${bugs.length}`)
+    
+    return filteredBugs
   }
 } 

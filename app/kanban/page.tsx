@@ -104,6 +104,8 @@ function BugCard({ bug, onClick, onDragStart, onDragEnd, isDragging }: {
   onDragEnd: () => void;
   isDragging: boolean;
 }) {
+  const router = useRouter()
+  
   return (
     <div
       className={`bg-white p-4 rounded-lg border shadow-sm hover:shadow-md transition-all cursor-pointer ${isDragging ? 'opacity-50 rotate-3 scale-105' : ''
@@ -181,7 +183,16 @@ function BugCard({ bug, onClick, onDragStart, onDragEnd, isDragging }: {
         <div className="mt-2 pt-2 border-t border-gray-100">
           <div className="flex items-center space-x-1">
             <span className="text-xs text-gray-500">Steam ID:</span>
-            <span className="text-xs font-mono text-gray-700">{(bug as any).steamId}</span>
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                router.push(`/steam/${(bug as any).steamId}`)
+              }}
+              className="text-blue-600 hover:text-blue-800 font-mono text-xs transition-colors underline decoration-dotted"
+              title="Посмотреть все баги этого пользователя"
+            >
+              {(bug as any).steamId}
+            </button>
           </div>
         </div>
       )}
@@ -287,6 +298,7 @@ export default function KanbanPage() {
   // Фильтры
   const [filterType, setFilterType] = useState('')
   const [filterPriority, setFilterPriority] = useState('')
+  const [steamIdSearch, setSteamIdSearch] = useState('')
   
   // Сортировка
   const [sortBy, setSortBy] = useState('createdAt')
@@ -398,7 +410,8 @@ export default function KanbanPage() {
     return bugsArray.filter(bug => {
       const matchesType = !filterType || bug.type === filterType
       const matchesPriority = !filterPriority || bug.priority === filterPriority
-      return matchesType && matchesPriority
+      const matchesSteamId = !steamIdSearch || (bug as any).steamId?.includes(steamIdSearch)
+      return matchesType && matchesPriority && matchesSteamId
     })
   }
 
@@ -503,6 +516,17 @@ export default function KanbanPage() {
         </div>
 
         <div className="flex flex-col">
+          <label className="text-sm font-medium text-gray-700 mb-1">Steam ID</label>
+          <input
+            type="text"
+            value={steamIdSearch}
+            onChange={(e) => setSteamIdSearch(e.target.value)}
+            placeholder="Поиск по Steam ID..."
+            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
+          />
+        </div>
+
+        <div className="flex flex-col">
           <label className="text-sm font-medium text-gray-700 mb-1">Сортировка</label>
           <select
             value={sortBy}
@@ -528,16 +552,17 @@ export default function KanbanPage() {
           </select>
         </div>
 
-        {(filterType || filterPriority) && (
+        {(filterType || filterPriority || steamIdSearch) && (
           <div className="flex items-end">
             <button
               onClick={() => {
                 setFilterType('')
                 setFilterPriority('')
+                setSteamIdSearch('')
               }}
               className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 underline"
             >
-              Сбросить фильтры
+              Очистить фильтры
             </button>
           </div>
         )}
